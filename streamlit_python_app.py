@@ -4,8 +4,8 @@ import numpy as np
 import time
 import random
 from datetime import datetime, timedelta
-import plotly.express as px
-import plotly.graph_objects as go
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 # PDF and ML libraries
 import PyPDF2
@@ -921,17 +921,16 @@ def document_processing_page():
                     for cls, prob in result["class_probabilities"].items()
                 ]).sort_values("Probability", ascending=False)
                 
-                # Create probability chart
-                fig = px.bar(
-                    probs_df, 
-                    x="Document Type", 
-                    y="Probability",
-                    title="Classification Probabilities",
-                    color="Probability",
-                    color_continuous_scale="viridis"
-                )
-                fig.update_layout(xaxis_tickangle=-45)
-                st.plotly_chart(fig, use_container_width=True)
+                # Create probability chart with matplotlib
+                fig, ax = plt.subplots(figsize=(10, 6))
+                bars = ax.bar(probs_df["Document Type"], probs_df["Probability"], 
+                             color=plt.cm.viridis(probs_df["Probability"]))
+                ax.set_xlabel("Document Type")
+                ax.set_ylabel("Probability")
+                ax.set_title("Classification Probabilities")
+                plt.xticks(rotation=45, ha='right')
+                plt.tight_layout()
+                st.pyplot(fig)
             
             # Confidence assessment
             if result["confidence"] > 0.85:
@@ -1124,44 +1123,42 @@ def training_dashboard_page():
                 'Importance': importances
             }).sort_values('Importance', ascending=False).head(15)
             
-            # Plot feature importance
-            fig_importance = px.bar(
-                feature_importance_df,
-                x='Importance',
-                y='Feature',
-                orientation='h',
-                title='Top 15 Most Important Features',
-                color='Importance',
-                color_continuous_scale='viridis'
-            )
-            fig_importance.update_layout(height=500)
-            st.plotly_chart(fig_importance, use_container_width=True)
+            # Plot feature importance with matplotlib
+            fig, ax = plt.subplots(figsize=(10, 8))
+            bars = ax.barh(feature_importance_df['Feature'], feature_importance_df['Importance'])
+            ax.set_xlabel('Importance')
+            ax.set_ylabel('Feature')
+            ax.set_title('Top 15 Most Important Features')
+            ax.invert_yaxis()  # Highest importance at top
+            plt.tight_layout()
+            st.pyplot(fig)
     
     with col2:
         st.subheader("📊 Performance Visualization")
         
         # Accuracy by category
         display_df = training_df[training_df['Accuracy'] > 0]  # Exclude user feedback for accuracy chart
-        fig_acc = px.bar(
-            display_df,
-            x="Category",
-            y="Accuracy",
-            title="Classification Accuracy by Category",
-            color="Accuracy",
-            color_continuous_scale="Viridis"
-        )
-        fig_acc.update_layout(xaxis_tickangle=-45)
-        st.plotly_chart(fig_acc, use_container_width=True)
+        
+        fig, ax = plt.subplots(figsize=(10, 6))
+        bars = ax.bar(display_df["Category"], display_df["Accuracy"], 
+                     color=plt.cm.viridis(display_df["Accuracy"]))
+        ax.set_xlabel("Category")
+        ax.set_ylabel("Accuracy")
+        ax.set_title("Classification Accuracy by Category")
+        plt.xticks(rotation=45, ha='right')
+        plt.tight_layout()
+        st.pyplot(fig)
         
         # Document distribution including user feedback
         total_with_feedback = enhanced_training_df[enhanced_training_df['Document Count'] > 0]
-        fig_dist = px.pie(
-            total_with_feedback,
-            values="Document Count",
-            names="Category", 
-            title="Training Data Distribution"
-        )
-        st.plotly_chart(fig_dist, use_container_width=True)
+        
+        fig2, ax2 = plt.subplots(figsize=(8, 8))
+        ax2.pie(total_with_feedback["Document Count"], 
+               labels=total_with_feedback["Category"], 
+               autopct='%1.1f%%',
+               startangle=90)
+        ax2.set_title("Training Data Distribution")
+        st.pyplot(fig2)
         
         # Model comparison over time (simulated)
         st.subheader("📈 Model Performance Trend")
@@ -1171,22 +1168,17 @@ def training_dashboard_page():
         baseline_accuracy = [0.75, 0.78, 0.82, 0.85]
         enhanced_accuracy = [0.82, 0.86, 0.89, 0.91]
         
-        trend_df = pd.DataFrame({
-            'Date': list(dates) + list(dates),
-            'Accuracy': baseline_accuracy + enhanced_accuracy,
-            'Model': ['Baseline'] * len(dates) + ['Enhanced'] * len(dates)
-        })
-        
-        fig_trend = px.line(
-            trend_df,
-            x='Date',
-            y='Accuracy',
-            color='Model',
-            title='Model Performance Over Time',
-            markers=True
-        )
-        fig_trend.update_yaxis(range=[0.7, 1.0])
-        st.plotly_chart(fig_trend, use_container_width=True)
+        fig3, ax3 = plt.subplots(figsize=(10, 6))
+        ax3.plot(dates, baseline_accuracy, marker='o', label='Baseline', linewidth=2)
+        ax3.plot(dates, enhanced_accuracy, marker='s', label='Enhanced', linewidth=2)
+        ax3.set_xlabel("Date")
+        ax3.set_ylabel("Accuracy")
+        ax3.set_title("Model Performance Over Time")
+        ax3.legend()
+        ax3.grid(True, alpha=0.3)
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+        st.pyplot(fig3)
         
         # Recommendations
         st.subheader("💡 Recommendations")
@@ -1273,25 +1265,30 @@ def monitoring_page():
     with col1:
         st.subheader("📊 Processing Volume")
         volume_data = generate_volume_data()
-        fig_volume = px.line(
-            volume_data,
-            x="Hour",
-            y="Documents",
-            title="Documents Processed by Hour"
-        )
-        st.plotly_chart(fig_volume, use_container_width=True)
+        
+        fig, ax = plt.subplots(figsize=(10, 6))
+        ax.plot(volume_data["Hour"], volume_data["Documents"], marker='o', linewidth=2)
+        ax.set_xlabel("Hour")
+        ax.set_ylabel("Documents")
+        ax.set_title("Documents Processed by Hour")
+        ax.grid(True, alpha=0.3)
+        plt.tight_layout()
+        st.pyplot(fig)
     
     with col2:
         st.subheader("🎯 Accuracy Trend")
         accuracy_data = generate_accuracy_data()
-        fig_accuracy = px.line(
-            accuracy_data,
-            x="Day",
-            y="Accuracy",
-            title="Classification Accuracy Over Time"
-        )
-        fig_accuracy.update_yaxis(range=[0.8, 1.0])
-        st.plotly_chart(fig_accuracy, use_container_width=True)
+        
+        fig2, ax2 = plt.subplots(figsize=(10, 6))
+        ax2.plot(accuracy_data["Day"], accuracy_data["Accuracy"], marker='s', linewidth=2, color='green')
+        ax2.set_xlabel("Day")
+        ax2.set_ylabel("Accuracy")
+        ax2.set_title("Classification Accuracy Over Time")
+        ax2.set_ylim(0.8, 1.0)
+        ax2.grid(True, alpha=0.3)
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+        st.pyplot(fig2)
 
 def system_settings_page():
     st.header("⚙️ System Settings")
