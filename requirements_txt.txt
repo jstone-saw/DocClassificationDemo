@@ -1,6 +1,6 @@
 streamlit
 pandas
 numpy
-plotly
+plotly>=5.0.0
 PyPDF2
 scikit-learn
